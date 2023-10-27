@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+
+    <style>
+        /* Custom CSS styles */
+        .meal-card {
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            
+        }
+
+        .meal-image {
+            width: 200px;
+            height: 200px;
+            display: inline;
+            margin: 5px;
+            padding: 3px;
+        }
+
+        .meal-vd {
+            margin: 5px;
+            padding: 3px;
+            
+        }
+
+        .container {
+            width: 600px;
+        }
+        
+        .imgBtn {
+            border: none;
+        }
+        
+        /*Image Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 50px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+
+        .modal-content {
+            display: block;
+            margin: 0 auto;
+            max-width: 50%;
+            max-height: 92%;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        /* Ingredients Modal  */
+
+        .ingredientModal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 50px;
+            left: 0;
+            top: 0;
+            margin-left: 26%;
+            width: 50%;
+            height: 80%;
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+
+        .ingredientContent {
+            display: block;
+            margin: 0 auto;
+            max-width: 60%;
+            max-height: 82%;
+        }
+
+        .closeIngredient {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        h3 {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-group" style=" padding: 20px; margin: 10px;" >
+        <input class="form-control" type="text" id="searchInput" placeholder="Search By First Letter">
+        <button class="btn btn-primary mt-3" id="searchButton">Search</button>
+        <button id="downloadButton" class="btn btn-primary mt-3">Download</button>
+    </div>
+    
+    
+    <div id="results"></div>
+    <div class="container mt-5">
+        <div id="mealList" class="mealList">
+            <!-- Meal data will be displayed here -->
+        </div>
+    </div>
+
+    
+
+    <!-- Modal -->
+    <div id="imageModal" class="modal">
+        <span class="close" id="closeModal">&times;</span>
+        <img id="modalContent" class="modal-content">
+    </div>
+
+    <div id="ingredientModal" class="ingredientModal">
+        <span class="closeIngredient" id="closeIngredient">&times;</span>
+        <ul id="ingredientContent" class="ingredientContent">
+
+        </ul>
+    </div>
+<script>
+    const searchInput = document.getElementById("searchInput");
+    const searchButton = document.getElementById("searchButton");
+    const resultsDiv = document.getElementById("results");
+    const mealList = document.getElementById("mealList");
+    let isIngredientModalOpen = false;
+
+
+    function clearMealList() {
+        mealList.innerHTML = '';
+    }
+
+
+    searchButton.addEventListener("click", ()=>{
+        clearMealList();
+        const firstLetter = searchInput.value.charAt(0).toLowerCase();
+
+        if(firstLetter.length !== 1) {
+            alert("Please Enter A Valid Letter");
+            return;
+        }
+
+        const api = `https://www.themealdb.com/api/json/v1/1/search.php?f=${firstLetter}`;
+        
+        fetch(api).then((response) => {
+            if(!response.ok) {
+                throw new Error('Http error!')
+            }
+            return response.json();
+        }).then((data) => {
+            var i = 1;
+            
+            data.meals.forEach(meal => {
+            
+            const id = document.createElement("b");
+            id.textContent = `No: ${i ++}`;
+
+            const mealCard = document.createElement("div");
+            mealCard.classList.add("meal-card");
+
+            mealCard.appendChild(id);
+            const cancelButton = document.createElement("button");
+            cancelButton.textContent = "X";
+            cancelButton.classList.add("btn", "btn-danger", "float-end", "btn-sm");
+
+
+            const mealName = document.createElement("h3");
+            mealName.textContent = meal.strMeal;
+
+            const mealCategory = document.createElement("p");
+            mealCategory.textContent = `Category: ${meal.strCategory}`;
+
+            // image code 
+            const mealImage = document.createElement("img");
+            mealImage.src = meal.strMealThumb;
+            mealImage.alt = meal.strMeal;
+            mealImage.classList.add("meal-image");
+
+            const imageModal = document.getElementById("imageModal");
+            const closeModal = document.getElementById("closeModal");
+              
+
+            mealImage.addEventListener("click", ()=> {
+                if(!isIngredientModalOpen) {
+                    const modalContent = document.getElementById("modalContent");
+                    modalContent.src = mealImage.src;
+                    imageModal.style.display = "block";
+                }
+                
+            });
+
+            // close codes 
+            closeModal.addEventListener("click", () => {
+                imageModal.style.display = "none";
+            });
+
+            window.addEventListener("click", (event) => {
+                if (event.target === imageModal) {
+                    imageModal.style.display = "none";
+                }
+            });
+
+        //   ingredient code 
+            const ingredients = [];
+
+            for (let a = 1; a <= 20; a++) {
+                const propertyName = `strIngredient${a}`;
+                if (propertyName in meal) {
+                    if(!meal[propertyName] == "" || null) {
+                         ingredients.push(meal[propertyName]);
+                    }
+                   
+                }
+            }
+            
+
+
+            const ingredientModal = document.getElementById("ingredientModal");
+            const closeIngredient = document.getElementById("closeIngredient");
+            
+            
+            const lg = ingredients.length;
+
+            mealName.addEventListener("click", () => {
+                
+                const ingredientContent = document.getElementById("ingredientContent");
+                ingredientContent.innerHTML = '';
+                const name = document.createElement("h4");
+                name.classList.add("text-white");
+                name.textContent = `Ingredients Of ${meal.strMeal}`;
+                ingredientContent.appendChild(name);
+                for (let x = 1; x <= lg; x++) {                 
+                    const ingredient = ingredients[x]
+                    const list = document.createElement("li");
+                    list.classList.add("text-white");
+                    list.textContent = `${x}: ${ingredient}`;
+                    ingredientContent.appendChild(list);
+                }
+                ingredientModal.style.display = "block";
+                isIngredientModalOpen = true;
+            })
+            
+
+            // close code 
+            closeIngredient.addEventListener("click", ()=> {
+                // Clear the list of ingredients
+                const ingredientContent = document.getElementById("ingredientContent");
+                ingredientContent.innerHTML = '';
+                ingredientModal.style.display = "none";   
+                isIngredientModalOpen = false;            
+            });
+            
+            
+          
+            // vd code
+            const mealVideoLink = document.createElement("iframe");
+            mealVideoLink.src = 'https://www.youtube.com/embed/g6NmegdUK-I';
+            mealVideoLink.classList.add("meal-vd");
+            mealVideoLink.classList.add("float-right");
+            mealVideoLink.setAttribute("width", "440"); 
+            mealVideoLink.setAttribute("height", "280"); 
+            mealVideoLink.setAttribute("allowfullscreen", "true");
+            mealVideoLink.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"); 
+               
+            
+            // adding to mealCard 
+            mealCard.appendChild(cancelButton);
+            mealCard.appendChild(mealName);
+            mealCard.appendChild(mealCategory);
+            mealCard.appendChild(mealImage);
+            mealCard.appendChild(mealVideoLink);
+            mealList.appendChild(mealCard);
+
+            cancelButton.addEventListener("click", () => {
+                mealCard.remove(); 
+            });
+
+           })
+        }).catch((error)=>{
+            console.log('Error fetching data', error);
+        });
+    });
+    
+const downloadButton = document.getElementById("downloadButton");
+downloadButton.addEventListener("click", () => {
+    // Get all meal names displayed on page 
+    const mealCards = document.querySelectorAll(".meal-card h3");
+    const mealNames = Array.from(mealCards).map(card=>card.textContent);
+
+    if(mealNames.length === 0) {
+        alert("There are no meal names to download.");
+        return;
+    }  
+
+
+    const  mealNamesText = mealNames.join('\n');
+    const blob = new Blob([mealNamesText], {type:"text/plain"});
+
+    // create link 
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "meal_names.txt";
+    a.style.display = "none";
+    document.body.appendChild(a);
+
+    a.click();
+
+    // remove link 
+    document.body.removeChild(a);
+})
+   
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+</body>
+</html>
